@@ -2,6 +2,7 @@ package com.civilizationsexpansion.command;
 
 import com.civilizationsexpansion.CivilizationsExpansion;
 import com.civilizationsexpansion.civilization.Civilization;
+import com.civilizationsexpansion.civilization.CivilizationCatalog;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.Commands;
