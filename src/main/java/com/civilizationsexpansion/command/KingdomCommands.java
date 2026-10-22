@@ -8,6 +8,9 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
@@ -43,6 +46,9 @@ public final class KingdomCommands {
                             context.getSource().getPlayerOrException(),
                             StringArgumentType.getString(context, "name")
                         ))))
+                .then(Commands.literal("build")
+                    .then(Commands.argument("structure", StringArgumentType.word())
+                        .executes(context -> buildStructure(context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "structure")))))
                 .then(Commands.literal("contribute")
                     .then(Commands.argument("emeralds", IntegerArgumentType.integer(1, MAX_CONTRIBUTION))
                         .executes(context -> contribute(
@@ -103,6 +109,7 @@ public final class KingdomCommands {
             + " | Population: " + kingdom.getInt("population")
             + " | Treasury: " + kingdom.getInt("treasury") + " emeralds"));
         player.sendSystemMessage(Component.literal("Contribute emeralds with /kingdom contribute <amount>."));
+        player.sendSystemMessage(Component.literal("Build with /kingdom build townhall, house, or watchtower."));
         return 1;
     }
 
@@ -139,6 +146,81 @@ public final class KingdomCommands {
         kingdom.putInt("treasury", kingdom.getInt("treasury") + amount);
         player.sendSystemMessage(Component.literal("Contributed " + amount + " emeralds to " + kingdom.getString("name") + "."));
         player.sendSystemMessage(Component.literal("Treasury balance: " + kingdom.getInt("treasury") + " emeralds."));
+        return 1;
+    }
+
+
+    private static int buildStructure(ServerPlayer player, String requested) {
+        CompoundTag kingdom = getKingdom(player);
+        if (kingdom == null) {
+            player.sendSystemMessage(Component.literal("Found a settlement first with /kingdom found."));
+            return 0;
+        }
+        String type = requested.toLowerCase(java.util.Locale.ROOT);
+        int cost;
+        switch (type) {
+            case "townhall" -> cost = 5;
+            case "house" -> cost = 3;
+            case "watchtower" -> cost = 4;
+            default -> {
+                player.sendSystemMessage(Component.literal("Choose a structure: townhall, house, or watchtower."));
+                return 0;
+            }
+        }
+        int treasury = kingdom.getInt("treasury");
+        if (treasury < cost) {
+            player.sendSystemMessage(Component.literal("This costs " + cost + " treasury emeralds; your treasury has " + treasury + "."));
+            return 0;
+        }
+        if (!player.level().dimension().location().toString().equals(kingdom.getString("dimension"))) {
+            player.sendSystemMessage(Component.literal("Travel to your settlement's dimension before building."));
+            return 0;
+        }
+        ServerLevel level = player.serverLevel();
+        BlockPos p = new BlockPos(kingdom.getInt("x"), kingdom.getInt("y"), kingdom.getInt("z"));
+        // Place a little above the recorded block so the structure does not replace its foundation.
+        p = p.above();
+        String civ = kingdom.getString("civilization");
+        if (type.equals("townhall")) {
+            var wall = civ.equals("dwarves") ? Blocks.DEEPSLATE_BRICKS : civ.equals("orcs") ? Blocks.COBBLED_DEEPSLATE : civ.equals("jade_warriors") ? Blocks.POLISHED_ANDESITE : Blocks.STONE_BRICKS;
+            var roof = civ.equals("orcs") ? Blocks.DARK_OAK_PLANKS : civ.equals("jade_warriors") ? Blocks.OAK_PLANKS : Blocks.SPRUCE_PLANKS;
+            for (int x=-3;x<=3;x++) for (int z=-3;z<=3;z++) {
+                level.setBlock(p.offset(x,0,z), wall.defaultBlockState(), 3);
+                for (int y=1;y<=3;y++) {
+                    boolean edge=Math.abs(x)==3 || Math.abs(z)==3;
+                    boolean doorway=(x==0 && z==-3);
+                    level.setBlock(p.offset(x,y,z), edge && !doorway ? wall.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+                }
+                level.setBlock(p.offset(x,4,z), roof.defaultBlockState(), 3);
+            }
+            level.setBlock(p.offset(0,1,0), Blocks.CRAFTING_TABLE.defaultBlockState(), 3);
+            level.setBlock(p.offset(1,1,0), Blocks.BARREL.defaultBlockState(), 3);
+        } else if (type.equals("house")) {
+            var wall = civ.equals("dwarves") ? Blocks.COBBLED_DEEPSLATE : civ.equals("jade_warriors") ? Blocks.BAMBOO_PLANKS : Blocks.OAK_PLANKS;
+            BlockPos q=p.offset(8,0,0);
+            for (int x=-2;x<=2;x++) for (int z=-2;z<=2;z++) {
+                level.setBlock(q.offset(x,0,z), Blocks.COBBLESTONE.defaultBlockState(), 3);
+                for (int y=1;y<=3;y++) {
+                    boolean edge=Math.abs(x)==2 || Math.abs(z)==2;
+                    boolean doorway=(x==0 && z==-2);
+                    level.setBlock(q.offset(x,y,z), edge && !doorway ? wall.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+                }
+                level.setBlock(q.offset(x,4,z), Blocks.SPRUCE_PLANKS.defaultBlockState(), 3);
+            }
+            level.setBlock(q.offset(0,1,0), Blocks.CRAFTING_TABLE.defaultBlockState(), 3);
+        } else {
+            BlockPos q=p.offset(-8,0,0);
+            for (int y=0;y<=5;y++) for (int x=-1;x<=1;x++) for (int z=-1;z<=1;z++) {
+                boolean edge=Math.abs(x)==1 || Math.abs(z)==1;
+                level.setBlock(q.offset(x,y,z), (y==0 || edge) ? Blocks.DEEPSLATE_BRICKS.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+            }
+            for (int x=-2;x<=2;x++) for (int z=-2;z<=2;z++) level.setBlock(q.offset(x,6,z), Blocks.SPRUCE_PLANKS.defaultBlockState(), 3);
+            for (int y=1;y<=4;y++) level.setBlock(q.offset(0,y,0), Blocks.LADDER.defaultBlockState(), 3);
+        }
+        kingdom.putInt("treasury", treasury-cost);
+        kingdom.putInt("buildings", kingdom.getInt("buildings")+1);
+        player.sendSystemMessage(Component.literal("Built " + type + "! Treasury now has " + kingdom.getInt("treasury") + " emeralds."));
+        player.sendSystemMessage(Component.literal("A simple physical structure has been placed at your settlement. Detailed faction designs are still in development."));
         return 1;
     }
 
