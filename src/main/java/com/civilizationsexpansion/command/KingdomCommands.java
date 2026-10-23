@@ -9,6 +9,7 @@ import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.item.Items;
@@ -46,6 +47,9 @@ public final class KingdomCommands {
                             context.getSource().getPlayerOrException(),
                             StringArgumentType.getString(context, "name")
                         ))))
+                .then(Commands.literal("recruit")
+                    .then(Commands.literal("villager")
+                        .executes(context -> recruitVillager(context.getSource().getPlayerOrException()))))
                 .then(Commands.literal("build")
                     .then(Commands.argument("structure", StringArgumentType.word())
                         .executes(context -> buildStructure(context.getSource().getPlayerOrException(), StringArgumentType.getString(context, "structure")))))
@@ -110,6 +114,7 @@ public final class KingdomCommands {
             + " | Treasury: " + kingdom.getInt("treasury") + " emeralds"));
         player.sendSystemMessage(Component.literal("Contribute emeralds with /kingdom contribute <amount>."));
         player.sendSystemMessage(Component.literal("Build with /kingdom build townhall, house, or watchtower."));
+        player.sendSystemMessage(Component.literal("Recruit with /kingdom recruit villager (4 treasury emeralds)."));
         return 1;
     }
 
@@ -149,6 +154,47 @@ public final class KingdomCommands {
         return 1;
     }
 
+
+
+    private static int recruitVillager(ServerPlayer player) {
+        CompoundTag kingdom = getKingdom(player);
+        if (kingdom == null) {
+            player.sendSystemMessage(Component.literal("Found a settlement first with /kingdom found."));
+            return 0;
+        }
+        int treasury = kingdom.getInt("treasury");
+        if (treasury < 4) {
+            player.sendSystemMessage(Component.literal("Recruiting a villager costs 4 treasury emeralds; your treasury has " + treasury + "."));
+            return 0;
+        }
+        if (!player.level().dimension().location().toString().equals(kingdom.getString("dimension"))) {
+            player.sendSystemMessage(Component.literal("Travel to your settlement's dimension before recruiting."));
+            return 0;
+        }
+        ServerLevel level = player.serverLevel();
+        BlockPos pos = new BlockPos(kingdom.getInt("x"), kingdom.getInt("y"), kingdom.getInt("z")).offset(4, 1, 4);
+        if (!level.hasChunkAt(pos)) {
+            player.sendSystemMessage(Component.literal("Settlement area is not loaded. Travel closer and try again."));
+            return 0;
+        }
+        Villager villager = net.minecraft.world.entity.EntityType.VILLAGER.create(level);
+        if (villager == null) {
+            player.sendSystemMessage(Component.literal("Could not create a villager."));
+            return 0;
+        }
+        villager.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, player.getYRot(), 0.0F);
+        villager.setCustomName(Component.literal(kingdom.getString("name") + " Resident"));
+        villager.setCustomNameVisible(true);
+        if (!level.addFreshEntity(villager)) {
+            player.sendSystemMessage(Component.literal("Could not add the villager to this world."));
+            return 0;
+        }
+        kingdom.putInt("treasury", treasury - 4);
+        kingdom.putInt("population", kingdom.getInt("population") + 1);
+        player.sendSystemMessage(Component.literal("A villager joined " + kingdom.getString("name") + "! Treasury: " + kingdom.getInt("treasury") + "; recorded population: " + kingdom.getInt("population") + "."));
+        player.sendSystemMessage(Component.literal("This is a regular Minecraft villager for now; faction-specific workers are planned."));
+        return 1;
+    }
 
     private static int buildStructure(ServerPlayer player, String requested) {
         CompoundTag kingdom = getKingdom(player);
