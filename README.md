@@ -14,9 +14,9 @@ A seven-civilization expansion framework for **Minecraft 1.20.1 / Forge 47.4.x**
 
 ## Current development status
 
-**Early framework / not yet a playable faction expansion.**
+**Early playable systems prototype — not yet a full Reign of the Nether-style expansion.**
 
-The initial source milestone adds the Forge mod entry point and a central catalog of all seven civilization IDs. It does not yet add faction units, buildings, builders, diplomacy, trade, war AI, or autonomous kingdoms. Those systems will be implemented in stages and tested before being described as playable.
+The project currently includes the Forge mod entry point, seven stable civilization IDs, player civilization selection, a saved diplomacy ledger, personal settlement records, simple physical townhall/house/watchtower builds, treasury contributions, villager recruitment, and a first guard-recruitment prototype. These are command-driven starter systems. The buildings are simple vanilla-block structures; the guard is a vanilla iron golem; diplomacy is a saved ledger rather than live faction AI. The add-on does not yet reproduce Reign of the Nether's RTS controls, builder AI, custom soldiers, autonomous kingdoms, or siege behavior.
 
 ## Build
 
@@ -37,7 +37,7 @@ GitHub Actions attempts this build on pushes and pull requests. Check the Action
 
 ## Compatibility
 
-This first milestone deliberately does not compile against or bundle code/assets from Reign of the Nether or Valarian Conquest. Compatibility hooks and integration should be added only after their APIs and licenses have been checked. Keep both original mods installed when testing their existing compatibility, but do not treat this early framework as implementing integration yet.
+This first milestone deliberately does not compile against or bundle code/assets from Reign of the Nether or Valarian Conquest. Use `/cex compatibility` in game for a basic optional-mod detection report. This is only a detection check, not proof of gameplay integration. The Reign of the Nether mod ID is confirmed as `reignofnether`; the Valarian Conquest ID still needs to be verified from its own JAR. Direct integration should be added only after its APIs and licenses have been checked. Keep both original mods installed when testing their existing compatibility, but do not treat this early framework as implementing integration yet.
 
 ## Roadmap
 
