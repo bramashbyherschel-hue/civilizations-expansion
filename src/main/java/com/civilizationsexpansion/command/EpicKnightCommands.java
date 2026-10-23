@@ -22,8 +22,8 @@ import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Epic Knights equipment preview. This is intentionally a stationary display prototype,
- * not a combat-ready allied soldier. It uses the real Epic Knights items if registered.
+ * Epic Knights equipment preview. It is a stationary display, not a combat-ready soldier.
+ * The spawn search avoids placing the display inside the settlement's walls or roof.
  */
 @Mod.EventBusSubscriber(modid = CivilizationsExpansion.MOD_ID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class EpicKnightCommands {
@@ -64,9 +64,9 @@ public final class EpicKnightCommands {
         }
         ServerLevel level = player.serverLevel();
         BlockPos settlement = new BlockPos(kingdom.getInt("x"), kingdom.getInt("y"), kingdom.getInt("z"));
-        BlockPos spawn = settlement.offset(3, 1, 2);
-        if (!level.hasChunkAt(spawn)) {
-            player.sendSystemMessage(Component.literal("Settlement area is not loaded. Travel closer and try again."));
+        BlockPos spawn = findSpawn(level, settlement);
+        if (spawn == null) {
+            player.sendSystemMessage(Component.literal("No safe, open space was found near your settlement. Clear a 1-block-wide, 2-block-high space on solid ground and try again."));
             return 0;
         }
         Zombie knight = EntityType.ZOMBIE.create(level);
@@ -91,10 +91,33 @@ public final class EpicKnightCommands {
             return 0;
         }
         kingdom.putInt("treasury", treasury - COST);
-        player.sendSystemMessage(Component.literal("Spawned an Epic Knight equipment display. Treasury: "
+        player.sendSystemMessage(Component.literal("Spawned an Epic Knight equipment display in open space. Treasury: "
             + kingdom.getInt("treasury") + " emeralds."));
-        player.sendSystemMessage(Component.literal("Prototype limitation: this knight is stationary and does not fight or follow orders yet."));
+        player.sendSystemMessage(Component.literal("Prototype limitation: this knight is still stationary and does not fight or follow orders."));
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static BlockPos findSpawn(ServerLevel level, BlockPos center) {
+        // Search outward so a wall, roof, or enclosed town hall does not hide the display.
+        for (int radius = 2; radius <= 10; radius++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != radius) continue;
+                    for (int dy = 0; dy <= 3; dy++) {
+                        BlockPos feet = center.offset(dx, dy, dz);
+                        BlockPos head = feet.above();
+                        BlockPos floor = feet.below();
+                        if (!level.hasChunkAt(feet) || !level.hasChunkAt(head) || !level.hasChunkAt(floor)) continue;
+                        if (level.getBlockState(floor).isSolidRender(level, floor)
+                            && level.getBlockState(feet).getCollisionShape(level, feet).isEmpty()
+                            && level.getBlockState(head).getCollisionShape(level, head).isEmpty()) {
+                            return feet;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 
     private static void equip(Zombie mob, EquipmentSlot slot, String itemId, Item fallback) {
