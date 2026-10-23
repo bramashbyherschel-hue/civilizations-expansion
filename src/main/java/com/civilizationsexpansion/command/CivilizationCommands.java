@@ -40,6 +40,13 @@ public final class CivilizationCommands {
                         ))))
                 .then(Commands.literal("info")
                     .executes(context -> showSelection(context.getSource().getPlayerOrException())))
+                .then(Commands.literal("roster")
+                    .executes(context -> showRoster(context.getSource().getPlayerOrException(), null))
+                    .then(Commands.argument("id", StringArgumentType.word())
+                        .executes(context -> showRoster(
+                            context.getSource().getPlayerOrException(),
+                            StringArgumentType.getString(context, "id")
+                        ))))
                 .then(Commands.literal("diplomacy")
                     .executes(context -> showDiplomacy(context.getSource().getPlayerOrException()))
                     .then(Commands.literal("list")
@@ -53,6 +60,77 @@ public final class CivilizationCommands {
                                     StringArgumentType.getString(context, "status")
                                 ))))))
         );
+    }
+
+
+    /**
+     * Displays the roster described in the design document. This is an informational
+     * catalog milestone: it does not claim these soldiers are recruitable entities yet.
+     */
+    private static int showRoster(ServerPlayer player, String requestedId) {
+        if (requestedId == null) {
+            String selectedId = player.getPersistentData().getString(PLAYER_CIVILIZATION_KEY);
+            Civilization selected = CivilizationCatalog.byId(selectedId);
+            if (selected == null) {
+                player.sendSystemMessage(Component.literal("Choose a civilization first with /civilizations choose <id>, or view a specific roster with /civilizations roster <id>."));
+                return 0;
+            }
+            return showRoster(player, selected.id());
+        }
+
+        Civilization civilization = CivilizationCatalog.byId(requestedId);
+        if (civilization == null) {
+            player.sendSystemMessage(Component.literal("Unknown civilization: " + requestedId + ". Use /civilizations list."));
+            return 0;
+        }
+
+        player.sendSystemMessage(Component.literal("=== " + civilization.displayName() + " roster ==="));
+        switch (civilization) {
+            case VALARIANS -> {
+                line(player, "Core: Spearmen, Axemen, Swordsmen, Knights, Archers");
+                line(player, "Special: Breacher — weak suicide unit; commanded or death-triggered explosion");
+                line(player, "Civilians: Villager, Farmer, Miner, Builder, Lumberjack");
+            }
+            case BOHEMIANS -> {
+                line(player, "Core: Spearmen, Axemen, Swordsmen, Knights, Archers");
+                line(player, "Special: Mercenaries — hire non-hostile bandits by paying ores");
+                line(player, "Civilians: Villager, Farmer, Miner, Builder, Lumberjack");
+            }
+            case CALADRIANS -> {
+                line(player, "Core: Spearmen, Axemen, Swordsmen, Knights, Archers");
+                line(player, "Special: Men-at-Arms — musket troops requiring a blacksmith and blackpowder; gun errors may cause an explosion");
+                line(player, "Civilians: Villager, Farmer, Miner, Builder, Lumberjack; Militia");
+            }
+            case VISIGOTHIANS -> {
+                line(player, "Core: Spearmen, Axemen, Swordsmen, Knights, Archers");
+                line(player, "Special: Javelinmen — throw tridents that can break or disable shields; carry 2 and restock after one in-game day");
+                line(player, "Civilians: Villager, Farmer, Miner, Builder, Lumberjack");
+            }
+            case ORCS -> {
+                line(player, "Traits: slow, strong; wild NPC tribes planned; maximum 20 buildings");
+                line(player, "Core: Spearmen (can throw spears), Berserkers (battle rage may hit allies), Swordsmen, Pig Riders, Archers");
+                line(player, "Special: Wargs (fast fear howl); Orc Shaman (fireballs and healing)");
+                line(player, "Civilians: Tribal, Underearther, Grunt, Lumberbök, Nomad");
+            }
+            case DWARVES -> {
+                line(player, "Traits: slow and strong; faster during night");
+                line(player, "Core: Spearmen, Axemen, Swordsmen, Ram Riders, Crossbowmen");
+                line(player, "Special: Repeating Crossbowmen; Repeating Chariots; Pikemen with phalanx and brace mechanics");
+                line(player, "Civilians: Villager, Farmer (4x mining reward belongs to miners), Miner (4x reward and 2x mining speed), Builder, Lumberjack");
+            }
+            case JADE_WARRIORS -> {
+                line(player, "Traits: holy soldiers that frighten undead");
+                line(player, "Core: Spearmen, Axemen, Swordsmen, Jade Lancers, Archers");
+                line(player, "Special: Flying Lantern (fireballs or transport 5 soldiers); Mounted Jade Gunmen; Priest (heals allies within 10 blocks)");
+                line(player, "Civilians: Villager, Farmer, Miner, Builder, Lumberjack");
+            }
+        }
+        player.sendSystemMessage(Component.literal("Design roster only: custom recruitment, models, abilities, and faction AI are not implemented by this command yet."));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static void line(ServerPlayer player, String text) {
+        player.sendSystemMessage(Component.literal("- " + text));
     }
 
     private static int showCatalog(ServerPlayer player) {
