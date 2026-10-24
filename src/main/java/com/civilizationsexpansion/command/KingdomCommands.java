@@ -274,14 +274,72 @@ public final class KingdomCommands {
                 level.setBlock(q.offset(x,4,z), Blocks.SPRUCE_PLANKS.defaultBlockState(), 3);
             }
             level.setBlock(q.offset(0,1,0), Blocks.CRAFTING_TABLE.defaultBlockState(), 3);
+        } else if (type.equals("horde_tent")) {
+            BlockPos q=p.offset(0,0,10);
+            for (int x=-3;x<=3;x++) for (int z=-3;z<=3;z++) {
+                level.setBlock(q.offset(x,0,z), Blocks.COARSE_DIRT.defaultBlockState(), 3);
+                for (int y=1;y<=3;y++) {
+                    boolean edge=Math.abs(x)==3 || Math.abs(z)==3;
+                    level.setBlock(q.offset(x,y,z), edge ? Blocks.DARK_OAK_LOG.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+                }
+                if (Math.abs(x)+Math.abs(z)<=4) level.setBlock(q.offset(x,4,z), Blocks.DARK_OAK_PLANKS.defaultBlockState(), 3);
+            }
+            level.setBlock(q.offset(0,1,0), Blocks.CAMPFIRE.defaultBlockState(), 3);
+        } else if (type.equals("jade_pavilion")) {
+            BlockPos q=p.offset(10,0,0);
+            for (int x=-3;x<=3;x++) for (int z=-3;z<=3;z++) {
+                level.setBlock(q.offset(x,0,z), Blocks.POLISHED_ANDESITE.defaultBlockState(), 3);
+                if (Math.abs(x)==3 && Math.abs(z)==3)
+                    for (int y=1;y<=3;y++) level.setBlock(q.offset(x,y,z), Blocks.STRIPPED_JUNGLE_LOG.defaultBlockState(), 3);
+            }
+            for (int x=-4;x<=4;x++) for (int z=-4;z<=4;z++)
+                if (Math.abs(x)==4 || Math.abs(z)==4) level.setBlock(q.offset(x,4,z), Blocks.JUNGLE_PLANKS.defaultBlockState(), 3);
+            level.setBlock(q.offset(0,1,0), Blocks.LANTERN.defaultBlockState(), 3);
+        } else if (type.equals("jade_palace")) {
+            BlockPos q=p.offset(10,0,0);
+            for (int x=-4;x<=4;x++) for (int z=-4;z<=4;z++) {
+                level.setBlock(q.offset(x,0,z), Blocks.PRISMARINE_BRICKS.defaultBlockState(), 3);
+                for (int y=1;y<=5;y++) {
+                    boolean edge=Math.abs(x)==4 || Math.abs(z)==4;
+                    boolean door=x==0 && z==-4;
+                    level.setBlock(q.offset(x,y,z), edge && !door ? Blocks.PRISMARINE_BRICKS.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+                }
+                level.setBlock(q.offset(x,6,z), Blocks.JUNGLE_PLANKS.defaultBlockState(), 3);
+            }
+            level.setBlock(q.offset(0,1,0), Blocks.BEACON.defaultBlockState(), 3);
+        } else if (type.equals("dynasty_wall")) {
+            BlockPos q=p.offset(0,0,10);
+            for (int x=-6;x<=6;x++) for (int z=-1;z<=1;z++) for (int y=0;y<=4;y++)
+                level.setBlock(q.offset(x,y,z), (y==4 || z==0 || Math.abs(x)==6) ? Blocks.PRISMARINE_BRICKS.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+            for (int x=-5;x<=5;x+=2) level.setBlock(q.offset(x,5,0), Blocks.SEA_LANTERN.defaultBlockState(), 3);
+        } else if (type.equals("dragon_tower") || type.equals("watchtower")) {
+            BlockPos q=p.offset(-8,0,0);
+            var tower = type.equals("dragon_tower") ? Blocks.POLISHED_BLACKSTONE_BRICKS : Blocks.DEEPSLATE_BRICKS;
+            for (int y=0;y<=6;y++) for (int x=-1;x<=1;x++) for (int z=-1;z<=1;z++) {
+                boolean edge=Math.abs(x)==1 || Math.abs(z)==1;
+                level.setBlock(q.offset(x,y,z), (y==0 || edge) ? tower.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+            }
+            for (int x=-2;x<=2;x++) for (int z=-2;z<=2;z++) level.setBlock(q.offset(x,7,z), (type.equals("dragon_tower") ? Blocks.EMERALD_BLOCK : Blocks.SPRUCE_PLANKS).defaultBlockState(), 3);
+            for (int y=1;y<=5;y++) level.setBlock(q.offset(0,y,0), Blocks.LADDER.defaultBlockState(), 3);
+            if (type.equals("dragon_tower")) {
+                level.setBlock(q.offset(0,6,0), Blocks.CAMPFIRE.defaultBlockState(), 3);
+                level.setBlock(q.offset(0,8,0), Blocks.LANTERN.defaultBlockState(), 3);
+            }
         } else {
             BlockPos q=p.offset(-8,0,0);
-            for (int y=0;y<=5;y++) for (int x=-1;x<=1;x++) for (int z=-1;z<=1;z++) {
-                boolean edge=Math.abs(x)==1 || Math.abs(z)==1;
-                level.setBlock(q.offset(x,y,z), (y==0 || edge) ? Blocks.DEEPSLATE_BRICKS.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+            boolean dwarf = type.equals("dwarven_keep");
+            var stone = dwarf ? Blocks.DEEPSLATE_BRICKS : Blocks.STONE_BRICKS;
+            int height = dwarf ? 4 : 8;
+            for (int x=-4;x<=4;x++) for (int z=-4;z<=4;z++) {
+                level.setBlock(q.offset(x,0,z), stone.defaultBlockState(), 3);
+                for (int y=1;y<=height;y++) {
+                    boolean edge=Math.abs(x)==4 || Math.abs(z)==4;
+                    boolean doorway=x==0 && z==-4;
+                    level.setBlock(q.offset(x,y,z), edge && !doorway ? stone.defaultBlockState() : Blocks.AIR.defaultBlockState(), 3);
+                }
+                level.setBlock(q.offset(x,height+1,z), (dwarf ? Blocks.COBBLED_DEEPSLATE : Blocks.SPRUCE_PLANKS).defaultBlockState(), 3);
             }
-            for (int x=-2;x<=2;x++) for (int z=-2;z<=2;z++) level.setBlock(q.offset(x,6,z), Blocks.SPRUCE_PLANKS.defaultBlockState(), 3);
-            for (int y=1;y<=4;y++) level.setBlock(q.offset(0,y,0), Blocks.LADDER.defaultBlockState(), 3);
+            for (int y=1;y<=height;y++) level.setBlock(q.offset(0,y,0), Blocks.LADDER.defaultBlockState(), 3);
         }
         kingdom.putInt("treasury", treasury-cost);
         kingdom.putInt("buildings", kingdom.getInt("buildings")+1);
