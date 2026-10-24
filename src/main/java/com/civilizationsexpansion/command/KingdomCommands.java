@@ -113,7 +113,8 @@ public final class KingdomCommands {
             + " | Population: " + kingdom.getInt("population")
             + " | Treasury: " + kingdom.getInt("treasury") + " emeralds"));
         player.sendSystemMessage(Component.literal("Contribute emeralds with /kingdom contribute <amount>."));
-        player.sendSystemMessage(Component.literal("Build with /kingdom build townhall, house, or watchtower."));
+        player.sendSystemMessage(Component.literal("Build: townhall, house, watchtower, horde_tent, jade_palace, jade_pavilion, dynasty_wall, dragon_tower, dwarven_keep, caladrian_keep."));
+        player.sendSystemMessage(Component.literal("Buildings placed: " + kingdom.getInt("buildings") + (kingdom.getString("civilization").equals("orcs") ? "/20 Orc building limit" : "")));
         player.sendSystemMessage(Component.literal("Recruit with /kingdom recruit villager (4 treasury emeralds)."));
         return 1;
     }
@@ -208,10 +209,29 @@ public final class KingdomCommands {
             case "townhall" -> cost = 5;
             case "house" -> cost = 3;
             case "watchtower" -> cost = 4;
+            case "horde_tent" -> cost = 6;
+            case "jade_palace" -> cost = 18;
+            case "jade_pavilion" -> cost = 8;
+            case "dynasty_wall" -> cost = 7;
+            case "dragon_tower" -> cost = 12;
+            case "dwarven_keep" -> cost = 14;
+            case "caladrian_keep" -> cost = 16;
             default -> {
-                player.sendSystemMessage(Component.literal("Choose a structure: townhall, house, or watchtower."));
+                player.sendSystemMessage(Component.literal("Unknown structure. Supported structures: townhall, house, watchtower, horde_tent, jade_palace, jade_pavilion, dynasty_wall, dragon_tower, dwarven_keep, caladrian_keep."));
                 return 0;
             }
+        }
+        String civId = kingdom.getString("civilization");
+        if ((type.equals("horde_tent") && !civId.equals("orcs"))
+            || ((type.equals("jade_palace") || type.equals("jade_pavilion") || type.equals("dynasty_wall") || type.equals("dragon_tower")) && !civId.equals("jade_warriors"))
+            || (type.equals("dwarven_keep") && !civId.equals("dwarves"))
+            || (type.equals("caladrian_keep") && !civId.equals("caladrians"))) {
+            player.sendSystemMessage(Component.literal("That structure is reserved for its matching civilization."));
+            return 0;
+        }
+        if (civId.equals("orcs") && kingdom.getInt("buildings") >= 20) {
+            player.sendSystemMessage(Component.literal("The Orc Horde cannot maintain more than 20 buildings."));
+            return 0;
         }
         int treasury = kingdom.getInt("treasury");
         if (treasury < cost) {
